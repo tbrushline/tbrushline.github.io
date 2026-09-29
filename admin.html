@@ -374,7 +374,7 @@
           `artworks/${Date.now()}-${Math.random().toString(36).slice(2)}-${safeName}`;
 
         const { error: uploadError } = await supabaseClient.storage
-          .from("product-images")
+          .from("product-image")
           .upload(filePath, imageFile, {
             cacheControl: "3600",
             upsert: false
@@ -383,7 +383,7 @@
         if (uploadError) throw uploadError;
 
         const { data: publicData } = supabaseClient.storage
-          .from("product-images")
+          .from("product-image")
           .getPublicUrl(filePath);
 
         imageUrl = publicData.publicUrl;
