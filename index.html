@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>TBrushLine | Original Art & Handmade Artwork</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <meta name="description" content="Discover original artworks, handmade paintings and creative pieces at TBrushLine.">
 
   <style>
@@ -1648,81 +1649,64 @@
        PRODUCTS
     ====================================== */
 
-    const products = [
+    let products = [];
 
-      {
-        id: 1,
-        name: "Golden Abstract",
-        category: "Abstract",
-        price: 2499,
-        image: "https://images.unsplash.com/photo-1549490349-8643362247b5?auto=format&fit=crop&w=800&q=85",
-        description: "A bold abstract artwork with warm artistic tones."
-      },
 
-      {
-        id: 2,
-        name: "Quiet Landscape",
-        category: "Painting",
-        price: 2999,
-        image: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&w=800&q=85",
-        description: "A peaceful artistic landscape created for calm spaces."
-      },
+    /* =====================================
+       SUPABASE
+       Products are loaded from the Admin Panel.
+    ====================================== */
 
-      {
-        id: 3,
-        name: "Modern Expression",
-        category: "Abstract",
-        price: 3499,
-        image: "https://images.unsplash.com/photo-1547891654-e66ed7ebb968?auto=format&fit=crop&w=800&q=85",
-        description: "A contemporary piece designed for modern interiors."
-      },
+    const SUPABASE_URL = "https://djoqkwfobimrprsdswbz.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_YRQUGbgCi6SwN5RShvVliA_DtXOZM6R";
 
-      {
-        id: 4,
-        name: "Pencil Portrait",
-        category: "Sketch",
-        price: 1999,
-        image: "https://images.unsplash.com/photo-1577083288073-40892c0860a4?auto=format&fit=crop&w=800&q=85",
-        description: "Detailed pencil-inspired artwork with expressive character."
-      },
+    const supabaseClient = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
+    );
 
-      {
-        id: 5,
-        name: "Creative Forms",
-        category: "Abstract",
-        price: 2799,
-        image: "https://images.unsplash.com/photo-1549490349-8643362247b5?auto=format&fit=crop&w=800&q=85",
-        description: "Creative forms and textures brought together in one piece."
-      },
 
-      {
-        id: 6,
-        name: "Classic Mood",
-        category: "Painting",
-        price: 3199,
-        image: "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&w=800&q=85",
-        description: "A classic-inspired artwork with an elegant visual mood."
-      },
+    async function loadProductsFromSupabase() {
 
-      {
-        id: 7,
-        name: "Line & Emotion",
-        category: "Sketch",
-        price: 1799,
-        image: "https://images.unsplash.com/photo-1577083288073-40892c0860a4?auto=format&fit=crop&w=800&q=85",
-        description: "Minimal line artwork created with expressive simplicity."
-      },
+      const productGrid = document.getElementById("productGrid");
 
-      {
-        id: 8,
-        name: "Contemporary Soul",
-        category: "Painting",
-        price: 3999,
-        image: "https://images.unsplash.com/photo-1547891654-e66ed7ebb968?auto=format&fit=crop&w=800&q=85",
-        description: "A contemporary artwork designed to become a focal point."
+      productGrid.innerHTML = `
+        <div style="grid-column:1/-1;text-align:center;padding:40px;color:#777;">
+          Loading artworks...
+        </div>
+      `;
+
+      const { data, error } = await supabaseClient
+        .from("products")
+        .select("id,name,price,description,image_url,category,size,stock,featured,active")
+        .eq("active", true)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Supabase product error:", error);
+        productGrid.innerHTML = `
+          <div style="grid-column:1/-1;text-align:center;padding:40px;color:#b94747;">
+            Unable to load artworks right now.
+          </div>
+        `;
+        return;
       }
 
-    ];
+      products = (data || []).map(product => ({
+        id: product.id,
+        name: product.name,
+        category: product.category || "Artwork",
+        price: Number(product.price || 0),
+        image: product.image_url,
+        description: product.description || "Original artwork from TBrushLine.",
+        size: product.size || "",
+        stock: Number(product.stock ?? 0),
+        featured: !!product.featured
+      }));
+
+      displayProducts();
+      updateCart();
+    }
 
 
     let cart = [];
@@ -2266,9 +2250,7 @@
        INITIAL LOAD
     ====================================== */
 
-    displayProducts();
-
-    updateCart();
+    loadProductsFromSupabase();
 
   </script>
 
