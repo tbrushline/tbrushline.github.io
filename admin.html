@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TBrushLine — Admin Panel</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f5f3ef;color:#1d1d1d}
+    button,input,textarea,select{font:inherit}
+    .hidden{display:none!important}
+    .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+    .login-card,.panel{background:#fff;border:1px solid #e6e1da;border-radius:18px;box-shadow:0 12px 35px rgba(0,0,0,.07)}
+    .login-card{width:100%;max-width:430px;padding:32px}
+    h1,h2,h3{margin-top:0}
+    .brand{font-size:28px;font-weight:700;margin-bottom:6px}
+    .muted{color:#777}
+    label{display:block;font-size:14px;font-weight:600;margin:16px 0 7px}
+    input,textarea,select{width:100%;padding:12px 13px;border:1px solid #d9d4cc;border-radius:10px;background:#fff;outline:none}
+    input:focus,textarea:focus,select:focus{border-color:#222}
+    textarea{min-height:110px;resize:vertical}
+    .btn{border:0;border-radius:10px;padding:11px 16px;cursor:pointer;font-weight:700}
+    .btn-primary{background:#1d1d1d;color:#fff}
+    .btn-light{background:#eeeae4;color:#222}
+    .btn-danger{background:#b42318;color:#fff}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .full{width:100%;margin-top:20px}
+    .error{color:#b42318;background:#fff0ee;border-radius:9px;padding:10px 12px;margin-top:14px;font-size:14px}
+    .success{color:#146c2e;background:#edf9f0;border-radius:9px;padding:10px 12px;margin-top:14px;font-size:14px}
+    .topbar{height:72px;background:#fff;border-bottom:1px solid #e6e1da;display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:5}
+    .topbrand{font-size:22px;font-weight:800}
+    .admin-email{font-size:13px;color:#777;margin-right:12px}
+    .actions{display:flex;align-items:center;gap:10px}
+    .container{max-width:1200px;margin:0 auto;padding:28px 20px 60px}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px}
+    .stat{padding:20px}
+    .stat-number{font-size:30px;font-weight:800;margin-top:8px}
+    .grid{display:grid;grid-template-columns:380px 1fr;gap:22px;align-items:start}
+    .panel{padding:22px}
+    .panel-title{display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .form-actions{display:flex;gap:10px;margin-top:18px}
+    .form-actions .btn{flex:1}
+    .preview{margin-top:12px;border:1px dashed #ccc;border-radius:12px;overflow:hidden;background:#fafafa}
+    .preview img{display:block;width:100%;height:180px;object-fit:cover}
+    .table-wrap{overflow:auto}
+    table{width:100%;border-collapse:collapse;min-width:720px}
+    th,td{text-align:left;padding:13px 10px;border-bottom:1px solid #ece8e2;font-size:14px;vertical-align:middle}
+    th{font-size:12px;text-transform:uppercase;color:#777;letter-spacing:.05em}
+    .product-img{width:58px;height:58px;object-fit:cover;border-radius:8px;background:#eee}
+    .pill{display:inline-block;padding:5px 8px;border-radius:999px;background:#eeeae4;font-size:12px}
+    .pill.on{background:#e7f6eb;color:#176b31}
+    .pill.off{background:#f8e9e7;color:#9c2d22}
+    .row-actions{display:flex;gap:7px;flex-wrap:wrap}
+    .small-btn{padding:7px 10px;font-size:12px}
+    .loading{text-align:center;padding:30px;color:#777}
+    .empty{text-align:center;padding:40px;color:#777}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:1fr}}
+    .gallery-admin{margin-top:22px}
+    .gallery-grid{display:grid;grid-template-columns:380px 1fr;gap:22px;align-items:start}
+    .member-img{width:58px;height:58px;object-fit:cover;border-radius:8px;background:#eee}
+    @media(max-width:900px){.gallery-grid{grid-template-columns:1fr}}
+
+    @media(max-width:600px){.topbar{padding:0 15px}.admin-email{display:none}.container{padding:18px 12px 40px}.panel{padding:16px}.login-card{padding:24px}}
+  </style>
+</head>
+<body>
+<section id="loginPage" class="login-wrap">
+  <div class="login-card">
+    <div class="brand">TBrushLine</div>
+    <div class="muted">Artwork Admin Panel</div>
+    <form id="loginForm">
+      <label for="loginEmail">Admin Email</label>
+      <input id="loginEmail" type="email" required autocomplete="email" />
+      <label for="loginPassword">Password</label>
+      <input id="loginPassword" type="password" required autocomplete="current-password" />
+      <button class="btn btn-primary full" type="submit">Login</button>
+      <div id="loginMessage"></div>
+    </form>
+  </div>
+</section>
+
+<section id="dashboard" class="hidden">
+<header class="topbar">
+  <div class="topbrand">TBrushLine Admin</div>
+  <div class="actions">
+    <span id="adminEmail" class="admin-email"></span>
+    <button id="logoutBtn" class="btn btn-light">Logout</button>
+  </div>
+</header>
+<main class="container">
+  <div class="stats">
+    <div class="panel stat"><div class="muted">Total artworks</div><div id="totalCount" class="stat-number">0</div></div>
+    <div class="panel stat"><div class="muted">Active artworks</div><div id="activeCount" class="stat-number">0</div></div>
+    <div class="panel stat"><div class="muted">Featured artworks</div><div id="featuredCount" class="stat-number">0</div></div>
+  </div>
+  <div class="grid">
+    <div class="panel">
+      <div class="panel-title"><h2 id="formTitle">Add Artwork</h2><button id="cancelEditBtn" class="btn btn-light hidden" type="button">Cancel</button></div>
+      <form id="productForm">
+        <label for="productName">Artwork name</label><input id="productName" type="text" required />
+        <label for="productPrice">Price</label><input id="productPrice" type="number" min="0" step="0.01" required />
+        <label for="productCategory">Category</label><input id="productCategory" type="text" placeholder="e.g. Portrait, Abstract" />
+        <label for="productSize">Size</label><input id="productSize" type="text" placeholder="e.g. 24 x 36 inch" />
+        <label for="productStock">Stock</label><input id="productStock" type="number" min="0" step="1" value="1" />
+        <label for="productDescription">Description</label><textarea id="productDescription" placeholder="Describe the artwork..."></textarea>
+        <label for="productImage">Artwork image</label><input id="productImage" type="file" accept="image/*" />
+        <div id="currentImageText" class="muted" style="margin-top:7px;font-size:13px"></div>
+        <div id="imagePreview" class="preview hidden"><img id="previewImg" alt="Preview" /></div>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:500"><input id="productFeatured" type="checkbox" style="width:auto" /> Featured artwork</label>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:500"><input id="productActive" type="checkbox" checked style="width:auto" /> Active / visible on website</label>
+        <div class="form-actions"><button id="saveBtn" class="btn btn-primary" type="submit">Save Artwork</button><button id="resetBtn" class="btn btn-light" type="button">Clear</button></div>
+        <div id="formMessage"></div>
+      </form>
+    </div>
+    <div class="panel">
+      <div class="panel-title">
+        <div><h2>Artworks</h2><div class="muted">Manage your products without editing HTML.</div></div>
+        <button id="refreshBtn" class="btn btn-light" type="button">Refresh</button>
+      </div>
+      <div id="productsArea" class="table-wrap" style="margin-top:18px"><div class="loading">Loading artworks...</div></div>
+    </div>
+  </div>
+
+<section class="gallery-admin">
+  <div class="panel-title" style="margin-bottom:16px"><div><h2>Gallery Members</h2><div class="muted">Add and arrange the members shown on the customer website.</div></div><button id="refreshMembersBtn" class="btn btn-light" type="button">Refresh</button></div>
+  <div class="gallery-grid">
+    <div class="panel">
+      <div class="panel-title"><h2 id="memberFormTitle">Add Member</h2><button id="cancelMemberEditBtn" class="btn btn-light hidden" type="button">Cancel</button></div>
+      <form id="memberForm">
+        <label for="memberName">Name</label><input id="memberName" type="text" required />
+        <label for="memberDesignation">Designation</label><input id="memberDesignation" type="text" required placeholder="e.g. Founder, Artist" />
+        <label for="memberBio">Bio</label><textarea id="memberBio" placeholder="Short introduction..."></textarea>
+        <label for="memberOrder">Display Order</label><input id="memberOrder" type="number" min="1" step="1" value="1" required />
+        <label for="memberImage">Member Photo</label><input id="memberImage" type="file" accept="image/*" />
+        <div id="memberCurrentImage" class="muted" style="margin-top:7px;font-size:13px"></div>
+        <div id="memberImagePreview" class="preview hidden"><img id="memberPreviewImg" alt="Preview" /></div>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:500"><input id="memberActive" type="checkbox" checked style="width:auto" /> Active / visible on website</label>
+        <div class="form-actions"><button id="saveMemberBtn" class="btn btn-primary" type="submit">Save Member</button><button id="clearMemberBtn" class="btn btn-light" type="button">Clear</button></div>
+        <div id="memberFormMessage"></div>
+      </form>
+    </div>
+    <div class="panel"><div id="membersArea" class="table-wrap"><div class="loading">Loading members...</div></div></div>
+  </div>
+</section>
+</main>
+</section>
+
+<script>
+const SUPABASE_URL = "https://djoqkwfobimrprsdswbz.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_YRQUGbgCi6SwN5RShvVliA_DtXOZM6R";
+const ADMIN_UID = "7df14713-8811-40a6-b08a-7fe6fc4b3609";
+const ADMIN_EMAIL = "ranarupak103@gmail.com";
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let editingProductId = null;
+let products = [];
+const $ = (id) => document.getElementById(id);
+
+function showMessage(target, message, type = "error") {
+  $(target).innerHTML = message ? `<div class="${type}">${message}</div>` : "";
+}
+function escapeHtml(value) {
+  return String(value ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+
+async function getAdminUser() {
+  const { data: { user }, error } = await supabaseClient.auth.getUser();
+  if (error || !user) throw new Error("Admin session missing. Please log in again.");
+  if (user.id !== ADMIN_UID || user.email !== ADMIN_EMAIL) throw new Error("This account is not authorized as the TBrushLine admin.");
+  return user;
+}
+
+\nlet editingMemberId = null;\nlet galleryMembers = [];\n\nasync function loadGalleryMembers(){\n  $("membersArea").innerHTML='<div class="loading">Loading members...</div>';\n  const {data,error}=await supabaseClient.from("gallery_members").select("*").order("display_order",{ascending:true}).order("created_at",{ascending:true});\n  if(error){$("membersArea").innerHTML=`<div class="error">${escapeHtml(error.message)}</div>`;return;}\n  galleryMembers=data||[]; renderGalleryMembers();\n}\nfunction renderGalleryMembers(){\n  if(!galleryMembers.length){$("membersArea").innerHTML='<div class="empty">No gallery members yet.</div>';return;}\n  const rows=galleryMembers.map(m=>`<tr>\n<td>${m.image_url?`<img class="member-img" src="${escapeHtml(m.image_url)}" alt="${escapeHtml(m.name)}">`:`<div class="member-img"></div>`}</td>\n<td><strong>${escapeHtml(m.name)}</strong><div class="muted">${escapeHtml(m.designation)}</div></td>\n<td>${Number(m.display_order||1)}</td>\n<td><span class="pill ${m.active?"on":"off"}">${m.active?"Active":"Hidden"}</span></td>\n<td><div class="row-actions"><button class="btn btn-light small-btn" onclick="editMember('${m.id}')">Edit</button><button class="btn btn-light small-btn" onclick="toggleMemberActive('${m.id}',${!m.active})">${m.active?"Hide":"Show"}</button><button class="btn btn-danger small-btn" onclick="deleteMember('${m.id}')">Delete</button></div></td>\n</tr>`).join("");\n  $("membersArea").innerHTML=`<table><thead><tr><th>Photo</th><th>Member</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;\n}\n$("memberImage").addEventListener("change",()=>{const file=$("memberImage").files[0];if(!file){$("memberImagePreview").classList.add("hidden");return;}$("memberPreviewImg").src=URL.createObjectURL(file);$("memberImagePreview").classList.remove("hidden");});\n$("memberForm").addEventListener("submit",async(e)=>{\n e.preventDefault(); showMessage("memberFormMessage",""); const btn=$("saveMemberBtn"); btn.disabled=true; btn.textContent="Saving...";\n try{await getAdminUser(); const name=$("memberName").value.trim(), designation=$("memberDesignation").value.trim(), bio=$("memberBio").value.trim(), display_order=Math.max(1,Number($("memberOrder").value||1)), active=$("memberActive").checked, file=$("memberImage").files[0]; if(!name||!designation)throw new Error("Please enter name and designation.");\n let image_url=editingMemberId?(galleryMembers.find(x=>x.id===editingMemberId)?.image_url||""):"";\n if(file){const ext=(file.type.split("/")[1]||"jpg").replace(/[^a-z0-9]/gi,"").toLowerCase(); const path=`members/${Date.now()}-${crypto.randomUUID()}.${ext}`; const {error}=await supabaseClient.storage.from("gallery-members").upload(path,file,{cacheControl:"3600",upsert:false}); if(error)throw error; image_url=supabaseClient.storage.from("gallery-members").getPublicUrl(path).data.publicUrl;}\n if(!image_url)throw new Error("Please select a member photo."); const payload={name,designation,bio,image_url,display_order,active};\n if(editingMemberId){const {error}=await supabaseClient.from("gallery_members").update(payload).eq("id",editingMemberId);if(error)throw error;showMessage("memberFormMessage","Member updated successfully.","success");}else{const {error}=await supabaseClient.from("gallery_members").insert(payload);if(error)throw error;showMessage("memberFormMessage","Member added successfully.","success");}\n resetMemberForm(); await loadGalleryMembers();\n }catch(err){showMessage("memberFormMessage",escapeHtml(err.message||"Something went wrong."));}finally{btn.disabled=false;btn.textContent="Save Member";}\n});\nfunction editMember(id){const m=galleryMembers.find(x=>x.id===id);if(!m)return;editingMemberId=id;$("memberFormTitle").textContent="Edit Member";$("cancelMemberEditBtn").classList.remove("hidden");$("memberName").value=m.name||"";$("memberDesignation").value=m.designation||"";$("memberBio").value=m.bio||"";$("memberOrder").value=m.display_order||1;$("memberActive").checked=m.active!==false;$("memberImage").value="";$("memberCurrentImage").textContent=m.image_url?"Current photo will remain unless you select a new one.":"";$("memberImagePreview").classList.add("hidden");window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"});}\nfunction resetMemberForm(){editingMemberId=null;$("memberForm").reset();$("memberOrder").value=galleryMembers.length+1;$("memberActive").checked=true;$("memberFormTitle").textContent="Add Member";$("cancelMemberEditBtn").classList.add("hidden");$("memberCurrentImage").textContent="";$("memberImagePreview").classList.add("hidden");$("memberPreviewImg").src="";}\nasync function toggleMemberActive(id,newValue){try{await getAdminUser();}catch(e){alert(e.message);return;}const {error}=await supabaseClient.from("gallery_members").update({active:newValue}).eq("id",id);if(error){alert(error.message);return;}await loadGalleryMembers();}\nasync function deleteMember(id){const m=galleryMembers.find(x=>x.id===id);if(!m)return;if(!confirm(`Delete "${m.name}"? This cannot be undone.`))return;try{await getAdminUser();}catch(e){alert(e.message);return;}const {error}=await supabaseClient.from("gallery_members").delete().eq("id",id);if(error){alert(error.message);return;}if(editingMemberId===id)resetMemberForm();await loadGalleryMembers();}\n$("clearMemberBtn").addEventListener("click",()=>{resetMemberForm();showMessage("memberFormMessage","");});$("cancelMemberEditBtn").addEventListener("click",()=>{resetMemberForm();showMessage("memberFormMessage","");});$("refreshMembersBtn").addEventListener("click",loadGalleryMembers);\n
+async function checkSession() {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session) {
+    $("loginPage").classList.add("hidden");
+    $("dashboard").classList.remove("hidden");
+    $("adminEmail").textContent = session.user.email || "";
+    await loadProducts();
+    await loadGalleryMembers();
+  } else {
+    $("dashboard").classList.add("hidden");
+    $("loginPage").classList.remove("hidden");
+  }
+}
+
+$("loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  showMessage("loginMessage","");
+  const email = $("loginEmail").value.trim();
+  const password = $("loginPassword").value;
+  const { error } = await supabaseClient.auth.signInWithPassword({email,password});
+  if (error) { showMessage("loginMessage",escapeHtml(error.message)); return; }
+  $("loginForm").reset();
+  await checkSession();
+});
+
+$("logoutBtn").addEventListener("click", async () => {
+  await supabaseClient.auth.signOut();
+  await checkSession();
+});
+
+async function loadProducts() {
+  $("productsArea").innerHTML = '<div class="loading">Loading artworks...</div>';
+  const { data, error } = await supabaseClient.from("products").select("*").order("created_at",{ascending:false});
+  if (error) { $("productsArea").innerHTML=`<div class="error">${escapeHtml(error.message)}</div>`; return; }
+  products=data||[]; updateStats(); renderProducts();
+}
+function updateStats() {
+  $("totalCount").textContent=products.length;
+  $("activeCount").textContent=products.filter(p=>p.active).length;
+  $("featuredCount").textContent=products.filter(p=>p.featured).length;
+}
+function renderProducts() {
+  if (!products.length) { $("productsArea").innerHTML='<div class="empty">No artworks yet. Add your first artwork from the form.</div>'; return; }
+  const rows=products.map(p=>`
+<tr>
+<td>${p.image_url?`<img class="product-img" src="${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name)}">`:`<div class="product-img"></div>`}</td>
+<td><strong>${escapeHtml(p.name)}</strong><div class="muted">${escapeHtml(p.category||"")}</div></td>
+<td>₹${Number(p.price||0).toLocaleString("en-IN")}</td>
+<td>${Number(p.stock??0)}</td>
+<td><span class="pill ${p.active?"on":"off"}">${p.active?"Active":"Hidden"}</span></td>
+<td><span class="pill ${p.featured?"on":""}">${p.featured?"Yes":"No"}</span></td>
+<td><div class="row-actions">
+<button class="btn btn-light small-btn" onclick="editProduct('${p.id}')">Edit</button>
+<button class="btn btn-light small-btn" onclick="toggleActive('${p.id}', ${!p.active})">${p.active?"Hide":"Show"}</button>
+<button class="btn btn-danger small-btn" onclick="deleteProduct('${p.id}')">Delete</button>
+</div></td>
+</tr>`).join("");
+  $("productsArea").innerHTML=`<table><thead><tr><th>Image</th><th>Artwork</th><th>Price</th><th>Stock</th><th>Active</th><th>Featured</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+$("productImage").addEventListener("change",()=>{
+  const file=$("productImage").files[0];
+  if(!file){$("imagePreview").classList.add("hidden");return;}
+  $("previewImg").src=URL.createObjectURL(file);
+  $("imagePreview").classList.remove("hidden");
+});
+
+$("productForm").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  showMessage("formMessage","");
+  const saveBtn=$("saveBtn");
+  saveBtn.disabled=true; saveBtn.textContent="Saving...";
+  let saveStage = "Checking admin session";
+  try {
+    await getAdminUser();
+
+    saveStage = "Reading artwork form";
+    const name=$("productName").value.trim();
+    const price=Number($("productPrice").value);
+    const category=$("productCategory").value.trim();
+    const size=$("productSize").value.trim();
+    const stock=Number($("productStock").value||0);
+    const description=$("productDescription").value.trim();
+    const featured=$("productFeatured").checked;
+    const active=$("productActive").checked;
+    const imageFile=$("productImage").files[0];
+
+    let imageUrl=editingProductId ? products.find(p=>p.id===editingProductId)?.image_url||"" : "";
+    if(!name || Number.isNaN(price)) throw new Error("Please enter artwork name and price.");
+
+    if(imageFile){
+      saveStage = "Uploading image to Storage bucket product-image";
+      const safeName=imageFile.name.toLowerCase().replace(/[^a-z0-9.]+/g,"-");
+      const filePath=`artworks/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+      const {error:uploadError}=await supabaseClient.storage.from("product-image").upload(filePath,imageFile,{cacheControl:"3600",upsert:false});
+      if(uploadError) throw uploadError;
+      const {data:publicData}=supabaseClient.storage.from("product-image").getPublicUrl(filePath);
+      imageUrl=publicData.publicUrl;
+    }
+
+    const payload={name,price,category,size,stock,description,image_url:imageUrl,featured,active};
+
+    if(editingProductId !== null){
+      saveStage = "Updating product row";
+      const {error}=await supabaseClient.from("products").update(payload).eq("id",editingProductId);
+      if(error) throw error;
+      showMessage("formMessage","Artwork updated successfully.","success");
+    } else {
+      if(!imageUrl) throw new Error("Please select an artwork image.");
+      saveStage = "Calling admin_insert_product RPC";
+      const {data,error}=await supabaseClient.rpc("admin_insert_product",{p_product:payload});
+      console.log("admin_insert_product result:", {data,error});
+      if(error) throw error;
+      showMessage("formMessage","Artwork added successfully.","success");
+    }
+
+    resetForm();
+    await loadProducts();
+    await loadGalleryMembers();
+  } catch(error) {
+    console.error("TBrushLine save failed at:", saveStage, error);
+    showMessage("formMessage",escapeHtml(`${saveStage}: ${error.message||"Something went wrong."}`));
+  } finally {
+    saveBtn.disabled=false; saveBtn.textContent="Save Artwork";
+  }
+});
+
+function editProduct(id){
+  const p=products.find(x=>x.id===id); if(!p)return;
+  editingProductId=id; $("formTitle").textContent="Edit Artwork"; $("cancelEditBtn").classList.remove("hidden");
+  $("productName").value=p.name||""; $("productPrice").value=p.price??""; $("productCategory").value=p.category||"";
+  $("productSize").value=p.size||""; $("productStock").value=p.stock??0; $("productDescription").value=p.description||"";
+  $("productFeatured").checked=!!p.featured; $("productActive").checked=p.active!==false; $("productImage").value="";
+  $("currentImageText").textContent=p.image_url?"Current image will remain unless you select a new one.":"";
+  $("imagePreview").classList.add("hidden"); window.scrollTo({top:0,behavior:"smooth"});
+}
+
+async function toggleActive(id,newValue){
+  try { await getAdminUser(); } catch(e){alert(e.message);return;}
+  const {error}=await supabaseClient.from("products").update({active:newValue}).eq("id",id);
+  if(error){alert(error.message);return;} await loadProducts();
+}
+async function deleteProduct(id){
+  const p=products.find(x=>x.id===id); if(!p)return;
+  if(!confirm(`Delete "${p.name}"? This cannot be undone.`))return;
+  try { await getAdminUser(); } catch(e){alert(e.message);return;}
+  const {error}=await supabaseClient.from("products").delete().eq("id",id);
+  if(error){alert(error.message);return;}
+  if(editingProductId===id)resetForm(); await loadProducts();
+}
+function resetForm(){
+  editingProductId=null; $("productForm").reset(); $("productStock").value=1; $("productActive").checked=true;
+  $("formTitle").textContent="Add Artwork"; $("cancelEditBtn").classList.add("hidden"); $("currentImageText").textContent="";
+  $("imagePreview").classList.add("hidden"); $("previewImg").src="";
+}
+$("resetBtn").addEventListener("click",()=>{resetForm();showMessage("formMessage","");});
+$("cancelEditBtn").addEventListener("click",()=>{resetForm();showMessage("formMessage","");});
+$("refreshBtn").addEventListener("click",loadProducts);
+supabaseClient.auth.onAuthStateChange((_event,session)=>{
+  if(!session){$("dashboard").classList.add("hidden");$("loginPage").classList.remove("hidden");}
+});
+checkSession();
+</script>
+</body>
+</html>
